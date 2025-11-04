@@ -1,0 +1,109 @@
+# ✅ 1. Install required packages
+!pip install -q openai-whisper ffmpeg-python tqdm
+
+import whisper, os, urllib.request, urllib.parse, json, subprocess, time
+from google.colab import files
+from tqdm import tqdm
+
+# ✅ 2. Upload your Korean video
+print("📤 Upload your Korean video (.mp4 or .mov)...")
+uploaded = files.upload()
+VIDEO_PATH = list(uploaded.keys())[0]
+
+# ✅ 3. Transcribe Korean
+model = whisper.load_model("small")
+result = model.transcribe(VIDEO_PATH, language="ko")
+segments = result["segments"]
+print(f"\n🎙️ Transcription complete — {len(segments)} subtitle segments.\n")
+
+# ✅ 4. Papago credentials
+client_id = "bs8rgnav4h"
+client_secret = "qtysII94ELGqU2hpgyOlcCUybZOpmDarVLbSfHpI"
+
+def translate_ko_to_en(text):
+    if not text.strip():
+        return ""
+    encText = urllib.parse.quote(text)
+    data = f"source=ko&target=en&text={encText}"
+    url = "https://papago.apigw.ntruss.com/nmt/v1/translation"
+    req = urllib.request.Request(url)
+    req.add_header("X-NCP-APIGW-API-KEY-ID", client_id)
+    req.add_header("X-NCP-APIGW-API-KEY", client_secret)
+    try:
+        with urllib.request.urlopen(req, data=data.encode("utf-8")) as res:
+            j = json.loads(res.read().decode("utf-8"))
+        return j["message"]["result"]["translatedText"]
+    except Exception as e:
+        return f"[Translation error: {e}]"
+
+# ✅ 5. Build bilingual subtitles (tiny, KR top / EN bottom)
+def to_srt(segments):
+    lines = []
+    start_time = time.time()
+    for i, seg in enumerate(tqdm(segments, desc="Translating", unit="seg")):
+        start, end, text_ko = seg["start"], seg["end"], seg["text"].strip()
+
+        def ts(x):
+            h = int(x // 3600)
+            m = int((x % 3600) // 60)
+            s = int(x % 60)
+            ms = int((x * 1000) % 1000)
+            return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+
+        en = translate_ko_to_en(text_ko)
+
+        # Smaller font, KR above EN
+        ko_line = "{\\fs16\\c&HA7C1E8&}" + text_ko
+        en_line = "{\\fs15\\c&HFFFFFF&}" + en
+        lines.append(f"{i+1}\n{ts(start)} --> {ts(end)}\n{ko_line}\\N{en_line}\n")
+
+        if (i+1) % max(1, len(segments)//10) == 0:
+            elapsed = time.time() - start_time
+            per_seg = elapsed / (i+1)
+            remaining = (len(segments) - (i+1)) * per_seg
+            print(f"⏳ {i+1}/{len(segments)} done — ~{remaining/60:.1f} min left")
+
+    return "\n".join(lines)
+
+print("🈶 Translating subtitles (this may take a few minutes)…")
+srt_content = to_srt(segments)
+
+# ✅ 6. Save subtitles
+srt_path = "/content/subtitles_bilingual_small.srt"
+with open(srt_path, "w", encoding="utf-8") as f:
+    f.write(srt_content)
+print("✅ Bilingual SRT created:", srt_path)
+
+# ✅ 7. Burn subtitles — tiny, elegant, bottom aligned
+!apt-get install -qq fonts-nanum
+
+output_video = "/content/video_with_tiny_subs.mp4"
+
+style = (
+    "FontName=NanumGothic,"
+    "FontSize=6,"                # ≈15× smaller
+    "BorderStyle=1,"              # transparent background
+    "Outline=0.4,"                # thin edge
+    "Shadow=0.8,"                 # soft shadow
+    "PrimaryColour=&H00FFFFFF&,"  # white
+    "OutlineColour=&H20202020&,"  # soft gray outline
+    "BackColour=&H00000000&,"     # transparent
+    "Alignment=2,"                # bottom-center
+    "MarginV=50"                  # close to bottom edge
+)
+
+cmd = [
+    "ffmpeg", "-y",
+    "-i", VIDEO_PATH,
+    "-vf", f"subtitles={srt_path}:force_style='{style}'",
+    "-c:v", "libx264", "-preset", "medium", "-crf", "18",
+    "-c:a", "copy", output_video
+]
+
+try:
+    subprocess.run(cmd, check=True)
+    print("\n🎬 Final video saved with tiny Leah K rose-gold KR + white EN subtitles →", output_video)
+except subprocess.CalledProcessError as e:
+    print("❌ FFmpeg error:", e)
+
+files.download(output_video)
