@@ -64,6 +64,23 @@ def on_upload_complete(file_obj):
     )
 
 
+def get_media_duration_seconds(media_path: str) -> float | None:
+    """Return media duration in seconds using ffprobe, or None if unknown."""
+    try:
+        probe = subprocess.run(
+            [
+                'ffprobe','-v','error','-show_entries','format=duration','-of','default=noprint_wrappers=1:nokey=1',
+                media_path
+            ], capture_output=True, text=True, timeout=15
+        )
+        if probe.returncode == 0:
+            val = probe.stdout.strip()
+            return float(val) if val else None
+    except Exception:
+        pass
+    return None
+
+
 def create_ass_subtitles(segments, translator, play_res_x: int | None = None, play_res_y: int | None = None):
     """Create ASS subtitle file for burning into video.
     Optionally specify PlayResX/PlayResY to make Fontsize ~pixels.
@@ -281,8 +298,9 @@ def transcribe_and_translate(
         progress(0.5, desc="Initializing translator...")
         translator = PapagoTranslator(papago_client_id, papago_client_secret)
         
-        # Generate bilingual SRT with progress tracking
-        progress(0.6, desc=f"Translating {len(segments)} segments...")
+        # Generate bilingual SRT with progress tracking and ETA
+        est_translate_secs = max(5, int(len(segments) * 1.2))  # heuristic ~1.2s per segment
+        progress(0.6, desc=f"Translating {len(segments)} segments (~{est_translate_secs}s)...")
         srt_content = segments_to_srt(segments, translator, show_progress=False, progress_callback=progress)
         
         # Extract Korean and English text for preview
@@ -315,7 +333,15 @@ def transcribe_and_translate(
         video_output = None
         video_error = None
         if is_video:
-            progress(0.8, desc=f"Burning subtitles into video (input: {os.path.basename(audio_path)})...")
+            # Estimate burn-in time from input duration (heuristic ~8x realtime + 30s setup)
+            vid_dur = get_media_duration_seconds(audio_path)
+            if vid_dur is not None and vid_dur > 0:
+                est_burn_secs = int(vid_dur * 8 + 30)
+                if est_burn_secs > 900:
+                    est_burn_secs = 900  # cap at 15 minutes to avoid scaring users
+                progress(0.8, desc=f"Burning subtitles into video (~{est_burn_secs//60}m {est_burn_secs%60}s)...")
+            else:
+                progress(0.8, desc=f"Burning subtitles into video (input: {os.path.basename(audio_path)})...")
             # Use a more accessible temp directory for video output
             temp_dir = tempfile.gettempdir()
             video_output_path = os.path.join(temp_dir, f"subtitled_{int(time.time())}.mp4")
@@ -417,6 +443,8 @@ with gr.Blocks(title="Papago Korean Translation", theme=gr.themes.Soft()) as dem
             gr.Markdown(
                 """
                 Upload auto-starts processing when finished. You can switch apps after upload—processing continues in the background.
+                
+                Tip: Larger videos upload slower over mobile data. For fastest results, use Wi‑Fi.
                 """
             )
         
