@@ -79,7 +79,7 @@ def _format_eta(seconds_total: int) -> str:
 
 
 def on_upload_complete(file_obj):
-    """Return upload-complete message and populate SRT/Video ETA lines immediately."""
+    """Return upload-complete message and update SRT/Video component labels with ETA immediately."""
     media_path = _extract_file_path(file_obj)
     dur_sec = get_media_duration_seconds(media_path) if media_path else None
 
@@ -93,9 +93,14 @@ def on_upload_complete(file_obj):
     base = (
         "✅ Upload complete. When you tap ‘Process’, processing runs on the server and will continue even if you leave the app."
     )
-    srt_line = f"Estimated time: ~{_format_eta(srt_eta)}" if srt_eta else ""
-    video_line = f"Estimated time: ~{_format_eta(burn_eta)}" if burn_eta else ""
-    return base, srt_line, video_line
+    srt_label = "📄 SRT Subtitle File (for CapCut)"
+    video_label = "🎬 Video with Burned-in Subtitles (Korean + English)"
+    if srt_eta:
+        srt_label = f"📄 SRT Subtitle File (for CapCut) — ETA {_format_eta(srt_eta)}"
+    if burn_eta:
+        video_label = f"🎬 Video with Burned-in Subtitles (Korean + English) — ETA {_format_eta(burn_eta)}"
+    # Return component updates for labels (no value change yet)
+    return base, gr.update(value=None, label=srt_label), gr.update(value=None, label=video_label)
 
 
 def get_media_duration_seconds(media_path: str) -> float | None:
@@ -444,13 +449,25 @@ def transcribe_and_translate(
         if video_error:
             english_text = f"{english_text}\n\n{video_error}"
         
-        return srt_file, video_output, korean_text, english_text, srt_eta_text, video_eta_text
+        # Update labels with final ETA text (if computed)
+        srt_label_final = "📄 SRT Subtitle File (for CapCut)"
+        video_label_final = "🎬 Video with Burned-in Subtitles (Korean + English)"
+        if srt_eta_text:
+            srt_label_final = f"{srt_label_final} — {srt_eta_text}"
+        if video_eta_text:
+            video_label_final = f"{video_label_final} — {video_eta_text}"
+        return (
+            gr.update(value=srt_file, label=srt_label_final),
+            gr.update(value=video_output, label=video_label_final),
+            korean_text,
+            english_text,
+        )
         
     except Exception as e:
         error_msg = f"Error: {str(e)}"
         import traceback
         traceback.print_exc()
-        return None, None, error_msg, None, "", ""
+        return None, None, error_msg, None
 
 
 # Create Gradio interface
@@ -509,9 +526,6 @@ with gr.Blocks(title="Papago Korean Translation", theme=gr.themes.Soft()) as dem
         with gr.Column():
             video_output = gr.Video(label="🎬 Video with Burned-in Subtitles (Korean + English)")
             srt_output = gr.File(label="📄 SRT Subtitle File (for CapCut)")
-            # ETA lines placed directly under each output section
-            srt_eta_line = gr.Markdown("")
-            video_eta_line = gr.Markdown("")
             
             with gr.Tabs():
                 with gr.Tab("Korean Transcription"):
@@ -546,21 +560,21 @@ with gr.Blocks(title="Papago Korean Translation", theme=gr.themes.Soft()) as dem
     process_btn.click(
         fn=transcribe_and_translate,
         inputs=[audio_input, url_input],
-        outputs=[srt_output, video_output, korean_output, english_output, srt_eta_line, video_eta_line]
+        outputs=[srt_output, video_output, korean_output, english_output]
     )
 
     # Mark upload completion explicitly to guide mobile usage
     audio_input.upload(
         fn=on_upload_complete,
         inputs=[audio_input],
-        outputs=[upload_status, srt_eta_line, video_eta_line]
+        outputs=[upload_status, srt_output, video_output]
     )
 
     # Auto-start processing immediately after upload so job is queued server-side
     audio_input.upload(
         fn=transcribe_and_translate,
         inputs=[audio_input],
-        outputs=[srt_output, video_output, korean_output, english_output, srt_eta_line, video_eta_line]
+        outputs=[srt_output, video_output, korean_output, english_output]
     )
 
 
