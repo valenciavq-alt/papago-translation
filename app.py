@@ -4,6 +4,43 @@ Transcribes Korean audio/video and creates bilingual subtitles using Whisper and
 Generates SRT file and video with burned-in subtitles.
 """
 
+# Monkey patch to fix Gradio schema generation bug
+# This MUST be done BEFORE importing gradio
+try:
+    from gradio_client import utils as client_utils
+    
+    # Patch get_type to handle boolean schemas
+    original_get_type = client_utils.get_type
+    
+    def patched_get_type(schema):
+        # Fix: Handle case where schema is a boolean (for additionalProperties)
+        if isinstance(schema, bool):
+            return "Any"
+        # Also check if schema is a dict before checking 'const' in it
+        if not isinstance(schema, dict):
+            return "Any"
+        return original_get_type(schema)
+    
+    client_utils.get_type = patched_get_type
+    
+    # Also patch _json_schema_to_python_type to handle additionalProperties boolean
+    original_json_schema_to_python_type = client_utils._json_schema_to_python_type
+    
+    def patched_json_schema_to_python_type(schema, defs=None):
+        # Handle case where additionalProperties is a boolean
+        if isinstance(schema, dict) and 'additionalProperties' in schema:
+            if isinstance(schema['additionalProperties'], bool):
+                # Convert boolean to dict format
+                schema = schema.copy()
+                schema['additionalProperties'] = {}
+        return original_json_schema_to_python_type(schema, defs)
+    
+    client_utils._json_schema_to_python_type = patched_json_schema_to_python_type
+except Exception as e:
+    import warnings
+    warnings.warn(f"Failed to patch Gradio schema bug: {e}")
+
+# Now import gradio AFTER patching
 import os
 import gradio as gr
 import tempfile
@@ -121,8 +158,19 @@ def transcribe_and_translate(
         return None, None, "Error: Papago API credentials not found in Space secrets. Please add PAPAGO_CLIENT_ID and PAPAGO_CLIENT_SECRET in Settings → Secrets.", None
     
     try:
-        # Handle both file path strings and file objects
-        audio_path = audio_file.name if hasattr(audio_file, 'name') else str(audio_file)
+        # Handle Gradio File object
+        if audio_file is None:
+            return None, None, "Please upload an audio or video file.", None
+        
+        # Extract file path from Gradio File object
+        if isinstance(audio_file, str):
+            audio_path = audio_file
+        elif hasattr(audio_file, 'name'):
+            audio_path = audio_file.name
+        elif isinstance(audio_file, dict) and 'name' in audio_file:
+            audio_path = audio_file['name']
+        else:
+            audio_path = str(audio_file)
         
         # Check if input is video or audio
         is_video = any(audio_path.lower().endswith(ext) for ext in ['.mp4', '.avi', '.mov', '.mkv', '.webm'])
@@ -152,9 +200,9 @@ def transcribe_and_translate(
         progress(0.5, desc="Initializing translator...")
         translator = PapagoTranslator(papago_client_id, papago_client_secret)
         
-        # Generate bilingual SRT
-        progress(0.6, desc="Translating and generating SRT subtitles...")
-        srt_content = segments_to_srt(segments, translator, show_progress=False)
+        # Generate bilingual SRT with progress tracking
+        progress(0.6, desc=f"Translating {len(segments)} segments...")
+        srt_content = segments_to_srt(segments, translator, show_progress=False, progress_callback=progress)
         
         # Extract Korean and English text for preview
         korean_text = "\n".join([seg["text"].strip() for seg in segments])
@@ -218,16 +266,14 @@ with gr.Blocks(title="Papago Korean Translation", theme=gr.themes.Soft()) as dem
         with gr.Column():
             audio_input = gr.File(
                 label="Audio/Video File",
-                file_types=[".mp3", ".wav", ".mp4", ".avi", ".m4a", ".flac", ".mov", ".mkv"],
-                type="filepath"
+                file_types=[".mp3", ".wav", ".mp4", ".avi", ".m4a", ".flac", ".mov", ".mkv"]
             )
             
             process_btn = gr.Button("🚀 Process", variant="primary", size="lg")
         
         with gr.Column():
             srt_output = gr.File(
-                label="📄 SRT Subtitle File (for CapCut)",
-                type="filepath"
+                label="📄 SRT Subtitle File (for CapCut)"
             )
             
             video_output = gr.Video(
@@ -276,4 +322,5 @@ with gr.Blocks(title="Papago Korean Translation", theme=gr.themes.Soft()) as dem
 
 
 if __name__ == "__main__":
-    demo.launch(share=False)
+    # Let Gradio auto-detect for Hugging Face Spaces
+    demo.launch()

@@ -5,6 +5,7 @@ Transcribes Korean video and creates bilingual subtitles using Whisper and Papag
 
 import urllib.request
 import urllib.parse
+import urllib.error
 import json
 import time
 from typing import List, Dict, Any
@@ -18,11 +19,12 @@ class PapagoTranslator:
         self.client_secret = client_secret
         self.url = "https://papago.apigw.ntruss.com/nmt/v1/translation"
     
-    def translate_ko_to_en(self, text: str) -> str:
+    def translate_ko_to_en(self, text: str, timeout: int = 30) -> str:
         """Translate Korean text to English using Papago API.
         
         Args:
             text: Korean text to translate
+            timeout: Request timeout in seconds
             
         Returns:
             Translated English text, or error message if translation fails
@@ -38,11 +40,17 @@ class PapagoTranslator:
         req.add_header("X-NCP-APIGW-API-KEY", self.client_secret)
         
         try:
-            with urllib.request.urlopen(req, data=data.encode("utf-8")) as res:
+            with urllib.request.urlopen(req, data=data.encode("utf-8"), timeout=timeout) as res:
                 response = json.loads(res.read().decode("utf-8"))
-            return response["message"]["result"]["translatedText"]
+                if "message" in response and "result" in response["message"]:
+                    return response["message"]["result"]["translatedText"]
+                else:
+                    return f"[Translation error: Unexpected response format]"
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode("utf-8") if hasattr(e, 'read') else str(e)
+            return f"[Translation error: HTTP {e.code} - {error_body}]"
         except Exception as e:
-            return f"[Translation error: {e}]"
+            return f"[Translation error: {str(e)}]"
 
 
 def timestamp_to_srt(seconds: float) -> str:
@@ -62,31 +70,44 @@ def timestamp_to_srt(seconds: float) -> str:
 
 
 def segments_to_srt(segments: List[Dict[str, Any]], translator: PapagoTranslator, 
-                   show_progress: bool = False) -> str:
+                   show_progress: bool = False, progress_callback=None) -> str:
     """Convert Whisper segments to bilingual SRT format.
     
     Args:
         segments: List of segment dicts with 'start', 'end', and 'text' keys
         translator: PapagoTranslator instance
         show_progress: Whether to print progress updates
+        progress_callback: Optional function(progress, desc) to update progress
         
     Returns:
         SRT file content as string
     """
     lines = []
     start_time = time.time()
+    total_segments = len(segments)
     
     for i, seg in enumerate(segments):
         start = seg["start"]
         end = seg["end"]
         text_ko = seg["text"].strip()
         
-        en = translator.translate_ko_to_en(text_ko)
+        try:
+            en = translator.translate_ko_to_en(text_ko)
+            # Fallback if translation failed
+            if en.startswith("[Translation error"):
+                en = "[Translation failed]"
+        except Exception as e:
+            en = f"[Translation error: {str(e)}]"
         
         # Smaller font, KR above EN
         ko_line = "{\\fs16\\c&HA7C1E8&}" + text_ko
         en_line = "{\\fs15\\c&HFFFFFF&}" + en
         lines.append(f"{i+1}\n{timestamp_to_srt(start)} --> {timestamp_to_srt(end)}\n{ko_line}\\N{en_line}\n")
+        
+        # Update progress
+        if progress_callback and total_segments > 0:
+            progress = 0.6 + (0.2 * (i + 1) / total_segments)  # 60% to 80%
+            progress_callback(progress, f"Translating segment {i+1}/{total_segments}...")
         
         if show_progress and (i+1) % max(1, len(segments)//10) == 0:
             elapsed = time.time() - start_time
