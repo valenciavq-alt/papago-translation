@@ -1,3 +1,5 @@
+🌐 Hugging Face Space live demo: [https://huggingface.co/spaces/zxc1232/koreantoenglish](https://huggingface.co/spaces/zxc1232/koreantoenglish) — No installation required—try it in your browser!
+
 # 🤖 Automated Deployment Script
 
 I've created a script that will help automate the deployment process. However, I cannot directly create the Space or authenticate with your Hugging Face account. Here's what I can do:

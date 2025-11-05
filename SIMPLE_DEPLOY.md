@@ -1,3 +1,5 @@
+🌐 Hugging Face Space live demo: [https://huggingface.co/spaces/zxc1232/koreantoenglish](https://huggingface.co/spaces/zxc1232/koreantoenglish) — No installation required—try it in your browser!
+
 # Hugging Face Login and Deployment Guide
 
 Since the CLI isn't available, here's the easiest way to deploy:

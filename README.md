@@ -1,6 +1,8 @@
+🌐 Try it online: [https://huggingface.co/spaces/zxc1232/koreantoenglish](https://huggingface.co/spaces/zxc1232/koreantoenglish) — Papago Korean-English Subtitle Generator (No installation required—try it in your browser!)
+
 # Papago Translation
 
-A Python module for transcribing Korean videos and creating bilingual subtitles using OpenAI Whisper and Papago API.
+A Python module for transcribing Korean videos and creating bilingual subtitles using OpenAI Whisper and Papago API. Hugging Face Space live demo available above.
 
 ## Features
 

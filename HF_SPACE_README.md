@@ -1,3 +1,5 @@
+🌐 Try it online: [https://huggingface.co/spaces/zxc1232/koreantoenglish](https://huggingface.co/spaces/zxc1232/koreantoenglish) — Papago Korean-English Subtitle Generator (No installation required—try it in your browser!)
+
 # Hugging Face Space Setup
 
 This directory contains code for deploying to Hugging Face Spaces.

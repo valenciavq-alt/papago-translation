@@ -10,6 +10,8 @@ pinned: false
 license: mit
 ---
 
+# 🌐 Try it online: [https://huggingface.co/spaces/zxc1232/koreantoenglish](https://huggingface.co/spaces/zxc1232/koreantoenglish) — Papago Korean-English Subtitle Generator (No installation required—try it in your browser!)
+
 # 🎤 Papago Korean Translation
 
 Transcribe Korean audio/video files and create bilingual subtitles using OpenAI Whisper and Papago API. Generates both SRT files for editing and videos with burned-in subtitles.

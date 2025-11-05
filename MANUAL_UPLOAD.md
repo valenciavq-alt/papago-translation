@@ -1,3 +1,5 @@
+🌐 Hugging Face Space live demo: [https://huggingface.co/spaces/zxc1232/koreantoenglish](https://huggingface.co/spaces/zxc1232/koreantoenglish) — No installation required—try it in your browser!
+
 # Manual Upload Instructions
 
 Since Git push is having authorization issues, here's the easiest way to upload:
