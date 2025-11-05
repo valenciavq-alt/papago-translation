@@ -63,8 +63,11 @@ def create_ass_subtitles(segments, translator):
         "",
         "[V4+ Styles]",
         "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
-        "Style: Korean,Arial,24,&HA7C1E8,&HFFFFFF,&H000000,&H80000000,0,0,0,0,100,100,0,0,1,2,1,2,10,10,10,1",
-        "Style: English,Arial,20,&HFFFFFF,&HFFFFFF,&H000000,&H80000000,0,0,0,0,100,100,0,0,1,2,1,2,10,10,50,1",
+        # Korean style: 12px, blue color (&HA7C1E8), positioned at top
+        # Using Noto Sans CJK KR or fallback fonts that support Korean
+        "Style: Korean,Noto Sans CJK KR,12,&HA7C1E8,&HFFFFFF,&H000000,&H80000000,0,0,0,0,100,100,0,0,1,2,1,2,10,10,10,1",
+        # English style: 12px, white color (&HFFFFFF), positioned at bottom
+        "Style: English,Noto Sans CJK KR,12,&HFFFFFF,&HFFFFFF,&H000000,&H80000000,0,0,0,0,100,100,0,0,1,2,1,2,10,10,50,1",
         "",
         "[Events]",
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"
@@ -80,10 +83,15 @@ def create_ass_subtitles(segments, translator):
         start_ass = timestamp_to_ass(start)
         end_ass = timestamp_to_ass(end)
         
-        # Korean line (top)
-        ass_lines.append(f"Dialogue: 0,{start_ass},{end_ass},Korean,,0,0,0,,{text_ko}")
-        # English line (bottom)
-        ass_lines.append(f"Dialogue: 0,{start_ass},{end_ass},English,,0,0,0,,{text_en}")
+        # Korean line (top) - add color override to ensure blue color shows
+        # &HA7C1E8 = blue color in BGR format
+        ko_colored = f"{{\\c&HA7C1E8&\\fs12}}{text_ko}"
+        ass_lines.append(f"Dialogue: 0,{start_ass},{end_ass},Korean,,0,0,0,,{ko_colored}")
+        
+        # English line (bottom) - add color override to ensure white color shows
+        # &HFFFFFF = white color in BGR format
+        en_colored = f"{{\\c&HFFFFFF&\\fs12}}{text_en}"
+        ass_lines.append(f"Dialogue: 0,{start_ass},{end_ass},English,,0,0,0,,{en_colored}")
     
     return "\n".join(ass_lines)
 
@@ -111,11 +119,12 @@ def burn_subtitles_to_video(video_path: str, segments: list, translator: PapagoT
         ass_file_escaped = shlex.quote(ass_file)
         
         # Use ffmpeg to burn subtitles
-        # For Korean fonts, use a font that's likely available: Arial or DejaVu Sans
+        # Use fonts that support Korean (Noto Sans CJK KR or fallback to system fonts)
+        # Don't override colors in force_style - let ASS file handle colors
         cmd = [
             'ffmpeg',
             '-i', video_path,
-            '-vf', f"subtitles={ass_file_escaped}:force_style='FontName=Arial,FontSize=24,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,BackColour=&H80000000,BorderStyle=1,Outline=2,Shadow=1'",
+            '-vf', f"subtitles={ass_file_escaped}:fontsdir=/usr/share/fonts/truetype/noto/:force_style='FontName=Noto Sans CJK KR,FontSize=12,Outline=1,Shadow=1'",
             '-c:a', 'copy',
             '-y',  # Overwrite output file
             output_path
