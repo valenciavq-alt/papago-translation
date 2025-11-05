@@ -366,37 +366,62 @@ def transcribe_and_translate(
 
 # Create Gradio interface
 with gr.Blocks(title="Papago Korean Translation", theme=gr.themes.Soft()) as demo:
+    # HERO / BANNER
     gr.Markdown(
         """
-        # 🎤 Korean Audio Transcription & Translation
+        ## 🇰🇷 한국어 → 영어 (영상/음성 지원) | Korean → English (Video & Audio)
+        **Korean-to-English Localized Translator – For Native Korean, Video & Audio**
         
-        Upload Korean audio or video files to:
-        - Transcribe Korean speech using Whisper (large-v3 model)
-        - Translate to English using Papago API
-        - Generate **SRT subtitle file** for editing in CapCut
-        - Generate **video with burned-in subtitles** (Korean + English)
-        
-        **Note:** Papago API credentials are configured in Space settings (Secrets).
+        한국어 사용자와 현지 방언을 위한 최고의 번역 도구입니다. 오디오와 비디오 모두 지원합니다.
+        """
+    )
+    gr.Markdown(
+        """
+        ### 🎬 🎧 Papago Korean-English Subtitle Generator
+        Hugging Face Space live demo — No installation required—try it in your browser!
         """
     )
     
+    # STEP HEADERS
+    gr.Markdown(
+        """
+        **Step 1:** Upload Your Korean Audio or Video File  
+        **Step 2:** Click “Process” to Transcribe & Translate  
+        **Step 3:** Download SRT Subtitles or Video with Korean & English Captions
+        """
+    )
+
     with gr.Row():
         with gr.Column():
+            upload_type = gr.Radio(
+                ["Video", "Audio"],
+                value="Video",
+                label="Upload Type"
+            )
+            gr.Markdown(
+                """
+                Supported formats:  
+                - Audio: MP3, WAV, M4A, FLAC  
+                - Video: MP4, AVI, MOV, MKV
+                """
+            )
             audio_input = gr.File(
-                label="Audio/Video File",
+                label="Audio/Video File (한국어로 된 영상 또는 음성을 업로드하세요)",
                 file_types=[".mp3", ".wav", ".mp4", ".avi", ".m4a", ".flac", ".mov", ".mkv"]
             )
             
             process_btn = gr.Button("🚀 Process", variant="primary", size="lg")
+            gr.Markdown(
+                """
+                Works with both Korean video and audio! Local everyday language understood.
+                """
+            )
         
         with gr.Column():
-            srt_output = gr.File(
-                label="📄 SRT Subtitle File (for CapCut)"
-            )
-            
-            video_output = gr.Video(
-                label="🎬 Video with Burned-in Subtitles (Korean + English)"
-            )
+            gr.Markdown("**🎬 Korean Video Subtitles (burned-in)**")
+            video_output = gr.Video(label="Final Video")
+            gr.Markdown("**📝 Bilingual SRT File for CapCut**")
+            srt_output = gr.File(label="SRT (UTF-8, LF)")
             
             with gr.Tabs():
                 with gr.Tab("Korean Transcription"):
@@ -415,19 +440,12 @@ with gr.Blocks(title="Papago Korean Translation", theme=gr.themes.Soft()) as dem
                         placeholder="English translation will appear here..."
                     )
     
+    # NOTES / CLARITY
     gr.Markdown(
         """
-        ### 📥 How to use:
-        1. Upload an audio or video file containing Korean speech
-        2. Click "Process" to transcribe and translate
-        3. Download:
-           - **SRT file** - Use this in CapCut for editing
-           - **Video with subtitles** - Ready-to-use video with Korean and English subtitles burned in
-        
-        ### 💡 Tips:
-        - Uses Whisper large-v3 model automatically for best accuracy
-        - Video processing requires ffmpeg (already installed)
-        - SRT file contains Korean (top) and English (bottom) for easy editing in CapCut
+        - Korean (blue, top) / English (white, bottom), both 12px  
+        - Optimized for Korean fonts (NanumGothic)  
+        - Errors from FFmpeg/Papago will appear here if any
         """
     )
     

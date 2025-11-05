@@ -7,10 +7,9 @@
     "projectName": "papago-translation",
     "projectPath": "/Users/valencia/papago-translation",
     "testIds": [],
-    "additionalInstruction": "Use running frontend on http://localhost:7860 for UI-based cases.",
+    "additionalInstruction": "Use the existing testsprite_frontend_test_plan.json. Upload testsprite_tests/assets/sample.mp4 via the file input, click Process, then verify SRT and video outputs are present.",
     "envs": {
       "API_KEY": "sk-user-YYdTld_y4noiYLf9bRTDwwkQxMbJJ971dX73H2zgSrBqvywVeyQicswQZcJtBpnb_FbM9xef86bo4zJ8siULx-qwH60cDg63VGAQGF1XOCc_C1MrGdYrOFYvHgsqlec1hkI"
     }
-  },
-  "proxy": "http://e92aa1b6-cb9b-4f6d-979f-1e269fb0ee50:Q15zLdIIm315N8HpeRciwF4Ejn7Jhvbe@tun.testsprite.com:8080"
+  }
 }
