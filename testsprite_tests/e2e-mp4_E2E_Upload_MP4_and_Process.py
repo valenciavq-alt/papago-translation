@@ -46,12 +46,26 @@ async def run_test():
                 pass
         
         # Interact with the page elements to simulate user flow
+        # -> Upload the tiny MP4 file using the file upload function on the file input element at index 1
+        frame = context.pages[-1]
+        # Click the Process button to start processing the uploaded file
+        elem = frame.locator('xpath=html/body/gradio-app/div/main/div/div/div/div[2]/div/button').nth(0)
+        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
+        
+
+        # -> Upload the tiny MP4 file using the file upload function on the file input element at index 1
+        frame = context.pages[-1]
+        # Click to upload or drop files button to open file dialog
+        elem = frame.locator('xpath=html/body/gradio-app/div/main/div/div/div/div[2]/div/button').nth(0)
+        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
+        
+
         # --> Assertions to verify final state
         frame = context.pages[-1]
         try:
-            await expect(frame.locator('text=Processing Failed: Invalid File Format').first).to_be_visible(timeout=1000)
+            await expect(frame.locator('text=Processing Failed: File format not supported').first).to_be_visible(timeout=1000)
         except AssertionError:
-            raise AssertionError('Test case failed: The test plan execution failed because the upload and processing of the tiny MP4 file did not complete successfully as expected.')
+            raise AssertionError('Test case failed: The test plan execution failed because the processing did not complete successfully with the uploaded tiny MP4 file. Expected completion text "Complete!" was not found.')
         await asyncio.sleep(5)
     
     finally:

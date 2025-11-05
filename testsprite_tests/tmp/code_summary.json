@@ -2,6 +2,50 @@
   "tech_stack": [
     "python",
     "gradio",
+    "huggingface-spaces",
+    "ffmpeg",
+    "openai-whisper",
+    "urllib (Papago API)",
+    "ass/srt subtitles"
+  ],
+  "features": [
+    {
+      "name": "Gradio UI",
+      "description": "Blocks UI with upload, process button, outputs for video and SRT, tabs for Korean/English, and queue enabled with keep_on_disconnect.",
+      "files": ["app.py"]
+    },
+    {
+      "name": "Transcription and Translation Pipeline",
+      "description": "Loads Whisper large-v3, transcribes Korean, translates via Papago, builds SRT, and optionally burns subtitles into video.",
+      "files": ["app.py", "papago_translation.py"]
+    },
+    {
+      "name": "ASS Subtitle Generation",
+      "description": "Creates styled ASS with NanumGothic, unified styling, PlayRes derived from input resolution, and layered KR over EN at bottom-center.",
+      "files": ["app.py"]
+    },
+    {
+      "name": "FFmpeg Burn-in",
+      "description": "Uses ffmpeg with subtitles filter to burn ASS into video; probes resolution with ffprobe; re-encodes with libx264/aac.",
+      "files": ["app.py"]
+    },
+    {
+      "name": "Papago Translation Service",
+      "description": "HTTP client for Naver Papago API with timeout and error handling.",
+      "files": ["papago_translation.py"]
+    },
+    {
+      "name": "SRT Builder",
+      "description": "Converts Whisper segments to bilingual SRT with strict CapCut-compatible formatting and LF encoding.",
+      "files": ["papago_translation.py"]
+    }
+  ]
+}
+
+{
+  "tech_stack": [
+    "python",
+    "gradio",
     "ffmpeg",
     "huggingface-spaces",
     "pytest",
