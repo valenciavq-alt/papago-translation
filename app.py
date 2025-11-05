@@ -55,6 +55,15 @@ except ImportError:
 from papago_translation import PapagoTranslator, segments_to_srt, timestamp_to_srt
 
 
+def on_upload_complete(file_obj):
+    """Return a user-facing message once the upload is finished on the server."""
+    # Provide a clear cue that it's safe to background after this point
+    return (
+        "✅ Upload complete. You can switch apps now. When you tap ‘Process’,"
+        " processing runs on the server and will continue even if you leave the app."
+    )
+
+
 def create_ass_subtitles(segments, translator, play_res_x: int | None = None, play_res_y: int | None = None):
     """Create ASS subtitle file for burning into video.
     Optionally specify PlayResX/PlayResY to make Fontsize ~pixels.
@@ -402,6 +411,7 @@ with gr.Blocks(title="Papago Korean Translation", theme=gr.themes.Soft()) as dem
                 label="Audio/Video File (한국어로 된 영상 또는 음성을 업로드하세요)",
                 file_types=[".mp3", ".wav", ".mp4", ".avi", ".m4a", ".flac", ".mov", ".mkv"]
             )
+            upload_status = gr.Markdown("", elem_id="upload-status")
             
             process_btn = gr.Button("🚀 Process", variant="primary", size="lg")
             gr.Markdown(
@@ -448,6 +458,13 @@ with gr.Blocks(title="Papago Korean Translation", theme=gr.themes.Soft()) as dem
         fn=transcribe_and_translate,
         inputs=[audio_input],
         outputs=[srt_output, video_output, korean_output, english_output]
+    )
+
+    # Mark upload completion explicitly to guide mobile usage
+    audio_input.upload(
+        fn=on_upload_complete,
+        inputs=[audio_input],
+        outputs=[upload_status]
     )
 
 
