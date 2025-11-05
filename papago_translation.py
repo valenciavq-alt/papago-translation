@@ -104,10 +104,15 @@ def segments_to_srt(segments: List[Dict[str, Any]], translator: PapagoTranslator
         en_line = "{\\fs15\\c&HFFFFFF&}" + en
         lines.append(f"{i+1}\n{timestamp_to_srt(start)} --> {timestamp_to_srt(end)}\n{ko_line}\\N{en_line}\n")
         
-        # Update progress
-        if progress_callback and total_segments > 0:
-            progress = 0.6 + (0.2 * (i + 1) / total_segments)  # 60% to 80%
-            progress_callback(progress, f"Translating segment {i+1}/{total_segments}...")
+        # Update progress - use try/except to avoid issues with Progress object evaluation
+        if total_segments > 0:
+            try:
+                if progress_callback is not None:
+                    progress_value = 0.6 + (0.2 * (i + 1) / total_segments)  # 60% to 80%
+                    progress_callback(progress_value, desc=f"Translating segment {i+1}/{total_segments}...")
+            except (AttributeError, IndexError, TypeError):
+                # If progress callback fails, continue silently
+                pass
         
         if show_progress and (i+1) % max(1, len(segments)//10) == 0:
             elapsed = time.time() - start_time
