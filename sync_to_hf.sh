@@ -40,6 +40,7 @@ FILES_TO_SYNC=(
     "papago_translation.py"
     "requirements_hf.txt"
     "README_HF.md"
+    "packages.txt"
 )
 
 echo -e "${BLUE}📋 Copying files to hf-space...${NC}"
