@@ -70,6 +70,25 @@ def _extract_file_path(file_obj) -> str | None:
         return None
 
 
+def translate_text_direct(ko_text: str) -> str:
+    """Translate a single block of Korean text to English via Papago.
+    Returns English text or an error message.
+    """
+    ko_text = (ko_text or "").strip()
+    if not ko_text:
+        return ""
+    papago_client_id = os.getenv("PAPAGO_CLIENT_ID")
+    papago_client_secret = os.getenv("PAPAGO_CLIENT_SECRET")
+    if not papago_client_id or not papago_client_secret:
+        return "Error: Papago API credentials not found in Space secrets."
+    try:
+        translator = PapagoTranslator(papago_client_id, papago_client_secret)
+        en = translator.translate_ko_to_en(ko_text)
+        return en
+    except Exception as e:
+        return f"[Translation error: {e}]"
+
+
 def _format_eta(seconds_total: int) -> str:
     minutes = seconds_total // 60
     seconds = seconds_total % 60
@@ -531,6 +550,22 @@ with gr.Blocks(title="Papago Korean Translation", theme=gr.themes.Soft()) as dem
                         max_lines=20,
                         placeholder="English translation will appear here..."
                     )
+
+            # Quick text translation section
+            gr.Markdown("### Quick Text Translation (Korean → English)")
+            ko_text_input = gr.Textbox(
+                label="Korean Text",
+                placeholder="여기에 한국어 텍스트를 입력하세요",
+                lines=4,
+                max_lines=8
+            )
+            translate_btn = gr.Button("Translate text")
+            en_text_output = gr.Textbox(
+                label="English Output",
+                lines=4,
+                max_lines=8,
+                interactive=False
+            )
     
     # BOTTOM: HOW TO USE + NOTE
     gr.Markdown(
@@ -549,6 +584,13 @@ with gr.Blocks(title="Papago Korean Translation", theme=gr.themes.Soft()) as dem
         fn=transcribe_and_translate,
         inputs=[audio_input, url_input],
         outputs=[srt_output, video_output, korean_output, english_output]
+    )
+
+    # Connect quick text translation
+    translate_btn.click(
+        fn=translate_text_direct,
+        inputs=[ko_text_input],
+        outputs=[en_text_output]
     )
 
     # Mark upload completion explicitly to guide mobile usage
