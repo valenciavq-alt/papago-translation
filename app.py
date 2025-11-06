@@ -553,7 +553,7 @@ with gr.Blocks(
                     )
 
             # Quick text translation section
-            with gr.Box(elem_classes=["card"]):
+            with gr.Group(elem_classes=["card"]):
                 gr.Markdown("#### Quick Text Translation (Korean → English)")
                 ko_text_input = gr.Textbox(
                     label="Korean Text",
