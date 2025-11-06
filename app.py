@@ -377,7 +377,7 @@ def transcribe_and_translate(
         srt_label_ready = "📄 SRT Subtitle File (for CapCut) ✅ Ready"
         yield (
             gr.update(value=srt_file, label=srt_label_ready),
-            None,  # Video not ready yet
+            gr.update(value=None, label="🎬 Video with Burned-in Subtitles (Korean + English) ⏳ Processing..."),  # Video not ready yet
             korean_text,
             english_text,
         )
@@ -440,9 +440,13 @@ def transcribe_and_translate(
         video_label_final = "🎬 Video with Burned-in Subtitles (Korean + English)"
         if video_output:
             video_label_final = f"{video_label_final} ✅"
+        elif is_video:
+            video_label_final = f"{video_label_final} ❌ Failed"
+        else:
+            video_label_final = f"{video_label_final} (Audio only - no video)"
         yield (
             gr.update(value=srt_file, label=srt_label_final),
-            gr.update(value=video_output, label=video_label_final) if video_output else None,
+            gr.update(value=video_output, label=video_label_final),
             korean_text,
             english_text,
         )
